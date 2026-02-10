@@ -1228,6 +1228,70 @@ function closeMobileSidebar() {
     setTimeout(() => { overlay.style.display = 'none'; }, 300);
 }
 
+function escapeHtml(value) {
+    if (value == null) return '';
+    return String(value)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+}
+
+function detectTextDirection(text) {
+    if (!text) return 'auto';
+    // Check for Arabic/Hebrew/Persian characters
+    const rtlChars = /[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF\uFB50-\uFDFF\uFE70-\uFEFF\u0590-\u05FF]/;
+    const firstChars = text.trim().substring(0, 50);
+    return rtlChars.test(firstChars) ? 'rtl' : 'ltr';
+}
+
+function formatAnswerHtml(text) {
+    if (!text) return '';
+
+    let cleaned = String(text).replace(/\r\n/g, '\n').trim();
+    cleaned = cleaned.replace(/\s*(Source|Sources|المصدر|المصادر)\s*:.*/gi, '').trim();
+    cleaned = cleaned.replace(/\s+\*\s+/g, '\n* ');
+    cleaned = cleaned.replace(/\s+-\s+/g, '\n- ');
+
+    const lines = cleaned.split('\n').map(line => line.trim()).filter(Boolean);
+    if (lines.length === 0) return '';
+
+    const parts = [];
+    let listBuffer = [];
+
+    const flushList = () => {
+        if (listBuffer.length === 0) return;
+        const items = listBuffer
+            .map(item => `<li>${formatInlineMarkdown(item)}</li>`)
+            .join('');
+        parts.push(`<ul class="answer-list">${items}</ul>`);
+        listBuffer = [];
+    };
+
+    lines.forEach(line => {
+        if (/^[*-]\s+/.test(line)) {
+            listBuffer.push(line.replace(/^[*-]\s+/, ''));
+            return;
+        }
+        flushList();
+        parts.push(`<p class="answer-paragraph">${formatInlineMarkdown(line)}</p>`);
+    });
+
+    flushList();
+    return parts.join('');
+}
+
+function formatInlineMarkdown(value) {
+    const escaped = escapeHtml(value);
+    return escaped.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+}
+
+function autoResizeTextarea(textarea) {
+    textarea.style.height = 'auto';
+    textarea.style.height = Math.min(textarea.scrollHeight, 200) + 'px';
+}
+
 function setupUploadZone(projectId) {
     const zone = document.getElementById('upload-zone');
     const input = document.getElementById('file-input');
