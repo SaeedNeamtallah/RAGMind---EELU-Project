@@ -13,12 +13,12 @@ if env_file.exists():
     token_found = False
     for i, line in enumerate(lines):
         if line.startswith('TELEGRAM_BOT_TOKEN='):
-            lines[i] = 'TELEGRAM_BOT_TOKEN=8264239620:AAEjhI1736D8fRwpW5YBNqtiUj0gL3xFcZA\n'
+            lines[i] = 'TELEGRAM_BOT_TOKEN=YOUR_TELEGRAM_BOT_TOKEN_HERE\n'
             token_found = True
             break
     
     if not token_found:
-        lines.append('TELEGRAM_BOT_TOKEN=8264239620:AAEjhI1736D8fRwpW5YBNqtiUj0gL3xFcZA\n')
+        lines.append('TELEGRAM_BOT_TOKEN=YOUR_TELEGRAM_BOT_TOKEN_HERE\n')
     
     # Write back
     with open(env_file, 'w', encoding='utf-8') as f:

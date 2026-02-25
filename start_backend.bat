@@ -59,11 +59,11 @@ echo.
 
 REM Start server
 echo Starting FastAPI server...
-echo Server will be available at: http://127.0.0.1:8000
-echo API docs at: http://127.0.0.1:8000/docs
+echo Server will be available at: http://127.0.0.1:8001
+echo API docs at: http://127.0.0.1:8001/docs
 echo.
 echo Starting frontend server at: http://localhost:8080
 start "" cmd /c "cd /d %~dp0frontend && python -m http.server 8080"
 echo Opening frontend in your browser...
 start "" "http://localhost:8080"
-python -m uvicorn backend.main:app --host 0.0.0.0 --port 8000
+python -m uvicorn backend.main:app --host 0.0.0.0 --port 8001

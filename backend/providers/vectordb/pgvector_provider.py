@@ -94,14 +94,13 @@ class PGVectorProvider(VectorDBInterface):
         """
         try:
             async with async_session_maker() as session:
-                # Build query to get all relevant chunks
-                # We fetch the embedding to calculate similarity in Python
+                # Build query to get relevant chunks and calculate distance natively
                 query = select(
                     Chunk.id,
                     Chunk.content,
                     Chunk.extra_metadata,
                     Chunk.asset_id,
-                    Chunk.embedding
+                    Chunk.embedding.cosine_distance(query_vector).label('distance')
                 ).where(
                     Chunk.embedding.isnot(None)
                 )
@@ -113,50 +112,28 @@ class PGVectorProvider(VectorDBInterface):
                     if 'asset_id' in filter_dict:
                         query = query.where(Chunk.asset_id == filter_dict['asset_id'])
                 
+                # Offload vector similarity to database
+                query = query.order_by('distance').limit(top_k)
                 result = await session.execute(query)
                 rows = result.all()
 
                 if not rows:
                     return []
 
-                # Vectorised cosine similarity via numpy (offloaded to thread)
-                import numpy as np
-                import asyncio as _aio
-
-                row_ids = [r.id for r in rows]
-                row_contents = [r.content for r in rows]
-                row_metas = [r.extra_metadata for r in rows]
-                row_assets = [r.asset_id for r in rows]
-                row_vecs = [r.embedding for r in rows]
-
-                def _rank():
-                    q = np.asarray(query_vector, dtype=np.float32)
-                    m = np.asarray(row_vecs, dtype=np.float32)
-                    dots = m @ q
-                    norms = np.linalg.norm(m, axis=1) * np.linalg.norm(q)
-                    norms[norms == 0] = 1.0
-                    sims = dots / norms
-                    k = min(top_k, len(sims))
-                    top_idx = np.argpartition(sims, -k)[-k:]
-                    top_idx = top_idx[np.argsort(sims[top_idx])[::-1]]
-                    return [(int(i), float(sims[i])) for i in top_idx]
-
-                ranked = await _aio.to_thread(_rank)
-
                 results = [
                     (
-                        row_ids[i],
-                        score,
+                        r.id,
+                        1.0 - float(r.distance), # convert distance to similarity
                         {
-                            'content': row_contents[i],
-                            'metadata': row_metas[i],
-                            'asset_id': row_assets[i],
+                            'content': r.content,
+                            'metadata': r.extra_metadata,
+                            'asset_id': r.asset_id,
                         }
                     )
-                    for i, score in ranked
+                    for r in rows
                 ]
 
-                logger.info(f"Found {len(results)} similar chunks (numpy cosine)")
+                logger.info(f"Found {len(results)} similar chunks (pgvector cosine)")
                 return results
                 
         except Exception as e:

@@ -11,14 +11,6 @@ from backend.database import get_db
 from backend.controllers.document_controller import DocumentController
 
 router = APIRouter(tags=["Documents"])
-_document_controller = None
-
-
-def get_document_controller() -> DocumentController:
-    global _document_controller
-    if _document_controller is None:
-        _document_controller = DocumentController()
-    return _document_controller
 
 
 # Response Models
@@ -46,6 +38,8 @@ async def upload_document(
     file: UploadFile = File(...),
     background_tasks: BackgroundTasks = BackgroundTasks(),
     db: AsyncSession = Depends(get_db)
+,
+    document_controller: DocumentController = Depends(DocumentController)
 ):
     """
     Upload document to project.
@@ -57,7 +51,6 @@ async def upload_document(
         file_size = len(file_content)
         
         # Upload document
-        document_controller = get_document_controller()
         asset = await document_controller.upload_document(
             db=db,
             project_id=project_id,
@@ -84,10 +77,11 @@ async def upload_document(
 async def list_project_documents(
     project_id: int,
     db: AsyncSession = Depends(get_db)
+,
+    document_controller: DocumentController = Depends(DocumentController)
 ):
     """List all documents in project."""
     try:
-        document_controller = get_document_controller()
         documents = await document_controller.list_project_documents(
             db=db,
             project_id=project_id
@@ -101,10 +95,11 @@ async def list_project_documents(
 async def get_document(
     asset_id: int,
     db: AsyncSession = Depends(get_db)
+,
+    document_controller: DocumentController = Depends(DocumentController)
 ):
     """Get document by ID."""
     try:
-        document_controller = get_document_controller()
         document = await document_controller.get_document(db=db, asset_id=asset_id)
         if not document:
             raise HTTPException(status_code=404, detail="Document not found")
@@ -119,10 +114,11 @@ async def get_document(
 async def process_document(
     asset_id: int,
     db: AsyncSession = Depends(get_db)
+,
+    document_controller: DocumentController = Depends(DocumentController)
 ):
     """Manually trigger document processing."""
     try:
-        document_controller = get_document_controller()
         await document_controller.process_document(asset_id=asset_id)
         document = await document_controller.get_document(db=db, asset_id=asset_id)
         return document
@@ -136,10 +132,11 @@ async def process_document(
 async def delete_document(
     asset_id: int,
     db: AsyncSession = Depends(get_db)
+,
+    document_controller: DocumentController = Depends(DocumentController)
 ):
     """Delete document."""
     try:
-        document_controller = get_document_controller()
         deleted = await document_controller.delete_document(db=db, asset_id=asset_id)
         if not deleted:
             raise HTTPException(status_code=404, detail="Document not found")

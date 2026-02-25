@@ -99,7 +99,7 @@ class Settings(BaseSettings):
         default="gpt-oss-120b",
         alias="CEREBRAS_GPT_OSS_120B_MODEL"
     )
-    embedding_batch_size: int = Field(default=20, alias="EMBEDDING_BATCH_SIZE")
+    embedding_batch_size: int = Field(default=96, alias="EMBEDDING_BATCH_SIZE")
     embedding_concurrency: int = Field(default=4, alias="EMBEDDING_CONCURRENCY")
     voyage_max_batch_tokens: int = Field(default=120000, alias="VOYAGE_MAX_BATCH_TOKENS")
     

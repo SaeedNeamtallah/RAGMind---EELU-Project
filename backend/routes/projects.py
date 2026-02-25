@@ -11,14 +11,6 @@ from backend.database import get_db
 from backend.controllers.project_controller import ProjectController
 
 router = APIRouter(prefix="/projects", tags=["Projects"])
-_project_controller = None
-
-
-def get_project_controller() -> ProjectController:
-    global _project_controller
-    if _project_controller is None:
-        _project_controller = ProjectController()
-    return _project_controller
 
 
 # Request/Response Models
@@ -46,6 +38,11 @@ class ProjectResponse(BaseModel):
         from_attributes = True
 
 
+class PaginatedProjectsResponse(BaseModel):
+    items: List[ProjectResponse]
+    total_count: int
+
+
 class ProjectStatsResponse(BaseModel):
     project: ProjectResponse
     stats: Dict[str, Any]
@@ -55,11 +52,11 @@ class ProjectStatsResponse(BaseModel):
 @router.post("/", response_model=ProjectResponse, status_code=201)
 async def create_project(
     project_data: ProjectCreate,
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_db),
+    project_controller: ProjectController = Depends(ProjectController)
 ):
     """Create a new project."""
     try:
-        project_controller = get_project_controller()
         project = await project_controller.create_project(
             db=db,
             name=project_data.name,
@@ -71,17 +68,17 @@ async def create_project(
         raise HTTPException(status_code=400, detail=str(e))
 
 
-@router.get("/", response_model=List[ProjectResponse])
+@router.get("/", response_model=PaginatedProjectsResponse)
 async def list_projects(
     skip: int = 0,
     limit: int = 100,
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_db),
+    project_controller: ProjectController = Depends(ProjectController)
 ):
     """List all projects."""
     try:
-        project_controller = get_project_controller()
-        projects = await project_controller.list_projects(db=db, skip=skip, limit=limit)
-        return projects
+        projects, total_count = await project_controller.list_projects(db=db, skip=skip, limit=limit)
+        return {"items": projects, "total_count": total_count}
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
 
@@ -89,11 +86,11 @@ async def list_projects(
 @router.get("/{project_id}", response_model=ProjectResponse)
 async def get_project(
     project_id: int,
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_db),
+    project_controller: ProjectController = Depends(ProjectController)
 ):
     """Get project by ID."""
     try:
-        project_controller = get_project_controller()
         project = await project_controller.get_project(db=db, project_id=project_id)
         if not project:
             raise HTTPException(status_code=404, detail="Project not found")
@@ -107,11 +104,11 @@ async def get_project(
 @router.get("/{project_id}/stats", response_model=ProjectStatsResponse)
 async def get_project_stats(
     project_id: int,
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_db),
+    project_controller: ProjectController = Depends(ProjectController)
 ):
     """Get project statistics."""
     try:
-        project_controller = get_project_controller()
         project = await project_controller.get_project(db=db, project_id=project_id)
         if not project:
             raise HTTPException(status_code=404, detail="Project not found")
@@ -132,11 +129,11 @@ async def get_project_stats(
 async def update_project(
     project_id: int,
     project_data: ProjectUpdate,
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_db),
+    project_controller: ProjectController = Depends(ProjectController)
 ):
     """Update project."""
     try:
-        project_controller = get_project_controller()
         project = await project_controller.update_project(
             db=db,
             project_id=project_id,
@@ -156,11 +153,11 @@ async def update_project(
 @router.delete("/{project_id}", status_code=204)
 async def delete_project(
     project_id: int,
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_db),
+    project_controller: ProjectController = Depends(ProjectController)
 ):
     """Delete project and all associated data."""
     try:
-        project_controller = get_project_controller()
         deleted = await project_controller.delete_project(db=db, project_id=project_id)
         if not deleted:
             raise HTTPException(status_code=404, detail="Project not found")

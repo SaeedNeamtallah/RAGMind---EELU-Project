@@ -131,20 +131,30 @@ class CohereProvider(LLMInterface):
                     model=self.embed_model,
                     input_type="search_document"
                 )
-            except cohere.errors.too_many_requests_error.TooManyRequestsError as e:
-                attempt += 1
-                if attempt > max_retries:
-                    raise
+            except Exception as e:
+                is_rate_limit = False
+                
+                if "TooManyRequestsError" in str(type(e)):
+                    is_rate_limit = True
+                elif getattr(e, "status_code", None) == 429:
+                    is_rate_limit = True
+                elif "429" in str(e) or "Too Many Requests" in str(e):
+                    is_rate_limit = True
+                
+                if is_rate_limit:
+                    attempt += 1
+                    if attempt > max_retries:
+                        raise
 
-                # Exponential backoff + jitter to avoid thundering herd
-                delay = base_delay * (2 ** (attempt - 1)) + random.uniform(0, 1.5)
-                delay = min(delay, 120)  # Cap at 2 minutes
-                logger.warning(
-                    "Cohere rate limited, retrying in %.2fs (attempt %s/%s)",
-                    delay,
-                    attempt,
-                    max_retries
-                )
-                await asyncio.sleep(delay)
-            except Exception:
-                raise
+                    # Exponential backoff + jitter to avoid thundering herd
+                    delay = base_delay * (2 ** (attempt - 1)) + random.uniform(0, 1.5)
+                    delay = min(delay, 120)  # Cap at 2 minutes
+                    logger.warning(
+                        "Cohere rate limited (429), retrying in %.2fs (attempt %s/%s)",
+                        delay,
+                        attempt,
+                        max_retries
+                    )
+                    await asyncio.sleep(delay)
+                else:
+                    raise

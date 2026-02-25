@@ -8,6 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from backend.database.models import Project, Asset, Chunk
 from backend.services.file_service import FileService
 from datetime import datetime
+from fastapi import Depends
 import logging
 
 logger = logging.getLogger(__name__)
@@ -16,9 +17,9 @@ logger = logging.getLogger(__name__)
 class ProjectController:
     """Controller for project operations."""
     
-    def __init__(self):
+    def __init__(self, file_service: FileService = Depends(FileService)):
         """Initialize project controller."""
-        self.file_service = FileService()
+        self.file_service = file_service
     
     async def create_project(
         self,
@@ -102,11 +103,16 @@ class ProjectController:
             List of projects
         """
         try:
+            from sqlalchemy import func
+            count_stmt = select(func.count()).select_from(Project)
+            count_result = await db.execute(count_stmt)
+            total_count = count_result.scalar()
+            
             stmt = select(Project).offset(skip).limit(limit).order_by(Project.created_at.desc())
             result = await db.execute(stmt)
             projects = result.scalars().all()
             
-            return list(projects)
+            return list(projects), total_count
             
         except Exception as e:
             logger.error(f"Error listing projects: {str(e)}")
