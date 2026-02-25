@@ -13,14 +13,6 @@ from backend.database import get_db
 from backend.controllers.query_controller import QueryController
 
 router = APIRouter(tags=["Query"])
-_query_controller = None
-
-
-def get_query_controller() -> QueryController:
-    global _query_controller
-    if _query_controller is None:
-        _query_controller = QueryController()
-    return _query_controller
 
 
 # Request/Response Models
@@ -50,13 +42,14 @@ async def query_project(
     project_id: int,
     query_data: QueryRequest,
     db: AsyncSession = Depends(get_db)
+,
+    query_controller: QueryController = Depends(QueryController)
 ):
     """
     Ask a question about project documents.
     Returns AI-generated answer with sources.
     """
     try:
-        query_controller = get_query_controller()
         result = await query_controller.answer_query(
             db=db,
             project_id=project_id,
@@ -87,12 +80,12 @@ async def query_project_stream(
     project_id: int,
     query_data: QueryRequest,
     db: AsyncSession = Depends(get_db),
+    query_controller: QueryController = Depends(QueryController)
 ):
     """
     Stream an AI-generated answer via Server-Sent Events.
     Emits: sources event, then token events, then [DONE].
     """
-    query_controller = get_query_controller()
     top_k = max(
         1,
         min(

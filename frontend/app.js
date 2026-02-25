@@ -4,7 +4,7 @@
  */
 
 // Configuration
-const API_BASE_URL = 'http://localhost:8000';
+const API_BASE_URL = 'http://localhost:8001';
 
 // Translations
 const i18n = {
@@ -230,10 +230,11 @@ const views = {
         showLoader();
 
         try {
-            const [projects, stats] = await Promise.all([
+            const [projectsRes, stats] = await Promise.all([
                 api.get('/projects/'),
                 api.get('/stats/')
             ]);
+            const projects = projectsRes.items || projectsRes;
             state.projects = projects;
 
             // Animate stats
@@ -271,7 +272,8 @@ const views = {
         showLoader();
 
         try {
-            const projects = await api.get('/projects/');
+            const projectsRes = await api.get('/projects/');
+            const projects = projectsRes.items || projectsRes;
             state.projects = projects;
 
             const list = document.getElementById('all-projects-list');
@@ -322,7 +324,8 @@ const views = {
         renderTemplate('chat-template');
 
         const select = document.getElementById('chat-project-select');
-        const projects = await api.get('/projects/');
+        const projectsRes = await api.get('/projects/');
+        const projects = projectsRes.items || projectsRes;
 
         projects.forEach(p => {
             const opt = document.createElement('option');
@@ -382,10 +385,11 @@ const views = {
         showLoader();
 
         try {
-            const [projects, config] = await Promise.all([
+            const [projectsRes, config] = await Promise.all([
                 api.get('/projects/'),
                 api.get('/bot/config')
             ]);
+            const projects = projectsRes.items || projectsRes;
 
             const select = document.getElementById('bot-active-project');
             projects.forEach(p => {
@@ -1060,15 +1064,15 @@ function addChatMessage(role, text, isThinking = false) {
     const msgDiv = document.createElement('div');
     msgDiv.className = `chat-msg-pro ${role}-msg-pro`;
     msgDiv.id = `msg-${id}`;
-    
+
     const isUser = role === 'user';
-    const authorName = isUser 
-        ? (state.lang === 'ar' ? 'أنت' : 'You') 
+    const authorName = isUser
+        ? (state.lang === 'ar' ? 'أنت' : 'You')
         : 'RAGMind';
-    
+
     // Detect text direction
     const textDir = detectTextDirection(text);
-    
+
     msgDiv.innerHTML = `
         <div class="msg-inner">
             <div class="msg-avatar-pro">
@@ -1081,13 +1085,13 @@ function addChatMessage(role, text, isThinking = false) {
             </div>
         </div>
     `;
-    
+
     if (!isUser && !isThinking) {
         const msgText = msgDiv.querySelector('.msg-text');
         msgText.innerHTML = escapeHtml(text);
         msgText.dir = textDir;
     }
-    
+
     messagesContainer.appendChild(msgDiv);
     messagesContainer.scrollTop = messagesContainer.scrollHeight;
     return id;

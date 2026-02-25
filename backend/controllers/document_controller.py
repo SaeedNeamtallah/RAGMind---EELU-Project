@@ -12,6 +12,7 @@ from backend.runtime_config import get_runtime_value
 from backend.config import settings
 from backend.providers.vectordb.factory import VectorDBProviderFactory
 from datetime import datetime
+from fastapi import Depends
 import logging
 
 logger = logging.getLogger(__name__)
@@ -20,9 +21,9 @@ logger = logging.getLogger(__name__)
 class DocumentController:
     """Controller for document operations."""
     
-    def __init__(self):
+    def __init__(self, file_service: FileService = Depends(FileService)):
         """Initialize document controller."""
-        self.file_service = FileService()
+        self.file_service = file_service
         # Lazy imports keep startup fast and avoid circular-import pitfalls.
         from backend.services.document_loader import DocumentLoaderService
         from backend.services.chunking_service import ChunkingService
