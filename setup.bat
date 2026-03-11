@@ -149,15 +149,15 @@ choice /C YN /M "Do you want to start the database with Docker?"
 if errorlevel 2 goto skip_docker
 if errorlevel 1 (
     echo [INFO] Starting Docker services...
-    docker-compose up -d
+    docker compose -f docker/docker-compose.yml up -d
     if errorlevel 1 (
         echo [ERROR] Failed to start Docker services!
     ) else (
-        echo [✓] PostgreSQL and Qdrant containers started
+        echo [✓] PostgreSQL, Qdrant, RabbitMQ and Redis containers started
         echo.
-        echo Waiting for database to be ready...
-        timeout /t 5 /nobreak >nul
-        echo [✓] Database is ready
+        echo Waiting for services to be ready...
+        timeout /t 10 /nobreak >nul
+        echo [✓] Services are ready
     )
 )
 echo.
@@ -201,12 +201,15 @@ echo 2. Edit the .env file and add:
 echo    - GEMINI_API_KEY (required)
 echo    - TELEGRAM_BOT_TOKEN (optional)
 echo    - DATABASE_URL is pre-configured for Docker
+echo    - CELERY_BROKER_URL and CELERY_RESULT_BACKEND are pre-configured
 echo.
 echo 3. To run the project:
-echo    - Start Backend: start_backend.bat
-echo    - Start Telegram Bot: start_telegram_bot.bat (optional)
+echo    - Start Backend:      start_backend.bat
+echo    - Start Celery Worker: start_celery.bat  (in a separate terminal)
+echo    - Start Telegram Bot:  start_telegram_bot.bat (optional)
 echo.
-echo 4. Open your browser at: http://localhost:8000
+echo 4. Open your browser at: http://localhost:8001
+echo    API docs at: http://localhost:8001/docs
 echo.
 echo ========================================
 echo 📚 For more information, see README.md

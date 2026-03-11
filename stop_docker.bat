@@ -15,7 +15,7 @@ if errorlevel 1 (
 )
 
 echo Stopping Docker services...
-docker-compose down
+docker compose -f docker/docker-compose.yml down
 
 if errorlevel 1 (
     echo [ERROR] Failed to stop Docker services!
@@ -29,6 +29,6 @@ echo [✓] Docker services stopped successfully!
 echo ========================================
 echo.
 echo Note: Data is preserved in Docker volumes.
-echo To remove all data: docker-compose down -v
+echo To remove all data: docker compose -f docker/docker-compose.yml down -v
 echo.
 pause

@@ -26,6 +26,27 @@ if errorlevel 1 (
 echo [✓] Database is running
 echo.
 
+REM Check if RabbitMQ is running
+docker ps 2>nul | findstr "rabbitmq" >nul
+if errorlevel 1 (
+    echo [WARNING] RabbitMQ is not running! Celery tasks will not be processed.
+    echo Run start_docker.bat to start all services.
+    echo.
+) else (
+    echo [✓] RabbitMQ is running
+)
+
+REM Check if Redis is running
+docker ps 2>nul | findstr "redis" >nul
+if errorlevel 1 (
+    echo [WARNING] Redis is not running! Celery result backend unavailable.
+    echo Run start_docker.bat to start all services.
+    echo.
+) else (
+    echo [✓] Redis is running
+)
+echo.
+
 REM Check if uv is installed
 uv --version >nul 2>&1
 if errorlevel 1 (
@@ -61,6 +82,9 @@ REM Start server
 echo Starting FastAPI server...
 echo Server will be available at: http://127.0.0.1:8001
 echo API docs at: http://127.0.0.1:8001/docs
+echo.
+echo [!] Remember to start the Celery worker in a separate terminal:
+echo     start_celery.bat
 echo.
 echo Starting frontend server at: http://localhost:8080
 start "" cmd /c "cd /d %~dp0frontend && python -m http.server 8080"

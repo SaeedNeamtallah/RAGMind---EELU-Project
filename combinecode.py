@@ -1,9 +1,10 @@
 import os
 
 output_file = 'all_project_code.txt'
-root_dir = r'c:\Users\saeid\ragmind discussed'
+root_dir = r'c:\Users\saeid\ragmind discussed' # Update this to your project root directory # Update this to your project root directory
 
 exclude_dirs = {'venv', '.git', '__pycache__', 'node_modules', '.idea', 'qdrant_data', 'qdrant_data_test', 'uploads', '.history'}
+
 valid_extensions = {'.py', '.js', '.ts', '.html', '.css', '.tsx', '.jsx', '.sql', '.sh', '.bat', '.json', '.md', '.yml'}
 
 with open(output_file, 'w', encoding='utf-8') as outfile:

@@ -1,0 +1,77 @@
+services:
+  postgres:
+    image: pgvector/pgvector:pg16
+    container_name: ragmind-postgres
+    environment:
+      POSTGRES_USER: ragmind
+      POSTGRES_PASSWORD: ragmind123
+      POSTGRES_DB: ragmind
+      POSTGRES_HOST_AUTH_METHOD: trust
+    ports:
+      - "5435:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ../init-db.sql:/docker-entrypoint-initdb.d/init-db.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ragmind -d ragmind"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  qdrant:
+    image: qdrant/qdrant:latest
+    container_name: ragmind-qdrant
+    ports:
+      - "6381:6333"
+      - "6382:6334"
+    volumes:
+      - qdrant_data:/qdrant/storage
+    restart: unless-stopped
+
+
+
+
+  rabbitmq:
+    image: rabbitmq:4.1.2-management-alpine
+    container_name: rabbitmq
+    ports:
+      - "5729:5672"
+      - "15672:15672"
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+      - ./rabbitmq/rabbitmq.conf:/etc/rabbitmq/rabbitmq.conf
+    env_file:
+      - ./env/.env.rabbitmq
+    restart: always
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "ping"]
+      timeout: 10s
+      retries: 5
+
+  redis:
+    image: redis:8.0.3-alpine
+    container_name: redis
+    ports:
+      - "6383:6379"
+    volumes:
+      - redis_data:/data
+    env_file:
+      - ./env/.env.redis
+    restart: always
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      timeout: 10s
+      retries: 5
+    command: ["redis-server", "--appendonly", "yes", "--requirepass", "${REDIS_PASSWORD:-minirag_redis_2222}"]
+
+
+
+    
+
+volumes:
+  postgres_data:
+  qdrant_data:
+
+  rabbitmq_data:
+  redis_data: 

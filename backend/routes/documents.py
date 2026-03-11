@@ -2,13 +2,15 @@
 Document Routes.
 API endpoints for document management.
 """
-from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, BackgroundTasks
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
 from sqlalchemy.ext.asyncio import AsyncSession
 from pydantic import BaseModel
 from typing import List, Optional, Dict, Any
 from datetime import datetime
 from backend.database import get_db
 from backend.controllers.document_controller import DocumentController
+from backend.tasks.file_processing import process_document_task
+from backend.celery_app import celery_app
 
 router = APIRouter(tags=["Documents"])
 
@@ -36,20 +38,19 @@ class AssetResponse(BaseModel):
 async def upload_document(
     project_id: int,
     file: UploadFile = File(...),
-    background_tasks: BackgroundTasks = BackgroundTasks(),
     db: AsyncSession = Depends(get_db)
 ,
     document_controller: DocumentController = Depends(DocumentController)
 ):
     """
     Upload document to project.
-    Document will be processed in background.
+    Document will be processed in background via Celery.
     """
     try:
         # Read file
         file_content = await file.read()
         file_size = len(file_content)
-        
+
         # Upload document
         asset = await document_controller.upload_document(
             db=db,
@@ -58,15 +59,12 @@ async def upload_document(
             filename=file.filename,
             file_size=file_size
         )
-        
-        # Process in background
-        background_tasks.add_task(
-            document_controller.process_document,
-            asset_id=asset.id
-        )
-        
+
+        # Dispatch processing to Celery worker
+        process_document_task.delay(asset_id=asset.id)
+
         return asset
-        
+
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
@@ -110,20 +108,27 @@ async def get_document(
         raise HTTPException(status_code=400, detail=str(e))
 
 
-@router.post("/documents/{asset_id}/process", response_model=AssetResponse)
+@router.post("/documents/{asset_id}/process")
 async def process_document(
     asset_id: int,
     db: AsyncSession = Depends(get_db)
 ,
     document_controller: DocumentController = Depends(DocumentController)
 ):
-    """Manually trigger document processing."""
+    """Manually trigger document processing via Celery."""
     try:
-        await document_controller.process_document(asset_id=asset_id)
+        # Verify asset exists
         document = await document_controller.get_document(db=db, asset_id=asset_id)
-        return document
-    except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        if not document:
+            raise HTTPException(status_code=404, detail="Document not found")
+
+        # Dispatch to Celery
+        task = process_document_task.delay(asset_id=asset_id)
+
+        return {"task_id": task.id, "status": "queued", "asset_id": asset_id}
+
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -145,3 +150,21 @@ async def delete_document(
         raise
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
+
+
+@router.get("/tasks/{task_id}")
+async def get_task_status(task_id: str):
+    """Check the status of a Celery background task."""
+    result = celery_app.AsyncResult(task_id)
+    response = {
+        "task_id": task_id,
+        "status": result.status,
+    }
+    if result.ready():
+        if result.successful():
+            response["result"] = result.result
+        else:
+            response["error"] = str(result.result)
+    elif result.info:
+        response["meta"] = result.info
+    return response

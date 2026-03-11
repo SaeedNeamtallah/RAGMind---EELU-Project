@@ -146,9 +146,23 @@ class Settings(BaseSettings):
         alias="CORS_ORIGINS"
     )
     
+    # Celery Configuration
+    celery_broker_url: str = Field(
+        default="amqp://minirag_user:minirag_rabbitmq_2222@localhost:5729/minirag_vhost",
+        alias="CELERY_BROKER_URL"
+    )
+    celery_result_backend: str = Field(
+        default="redis://:minirag_redis_2222@localhost:6383/0",
+        alias="CELERY_RESULT_BACKEND"
+    )
+    celery_task_serializer: str = Field(default="json", alias="CELERY_TASK_SERIALIZER")
+    celery_task_time_limit: int = Field(default=600, alias="CELERY_TASK_TIME_LIMIT")
+    celery_task_acks_late: bool = Field(default=True, alias="CELERY_TASK_ACKS_LATE")
+    celery_worker_concurrency: int = Field(default=2, alias="CELERY_WORKER_CONCURRENCY")
+
     # Logging
     log_level: str = Field(default="INFO", alias="LOG_LEVEL")
-    
+
     model_config = SettingsConfigDict(
         env_file=".env",
         env_file_encoding="utf-8",

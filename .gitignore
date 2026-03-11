@@ -100,18 +100,17 @@ alembic.ini
 *.old
 .cache
 .codersinflow
-.vscode
 node_modules
-.venv
 .codex
 out
 dist
 *.vsix
 .claude
 CLAUDE.md
-.git
 __pycache__
 *.pyc
 .next
-.github
-.gitignore
+
+# Generated output files
+all_project_code.txt
+server_output.txt

@@ -28,8 +28,8 @@ echo [✓] Docker is running
 echo.
 
 REM Start services
-echo Starting PostgreSQL and Qdrant containers...
-docker-compose up -d
+echo Starting PostgreSQL, Qdrant, RabbitMQ and Redis containers...
+docker compose -f docker/docker-compose.yml up -d
 
 if errorlevel 1 (
     echo [ERROR] Failed to start Docker services!
@@ -43,14 +43,13 @@ echo [✓] Docker services started successfully!
 echo ========================================
 echo.
 echo Services running:
-echo   - PostgreSQL: localhost:5432
-echo   - Qdrant:     localhost:6333
-echo.
-echo Database connection string:
-echo   postgresql://ragmind:ragmind123@localhost:5432/ragmind
+echo   - PostgreSQL:          localhost:5435
+echo   - Qdrant:              localhost:6381
+echo   - RabbitMQ:            localhost:5729  (Management: localhost:15672)
+echo   - Redis:               localhost:6383
 echo.
 echo To stop services: stop_docker.bat
-echo To view logs: docker-compose logs -f
+echo To view logs: docker compose -f docker/docker-compose.yml logs -f
 echo.
 if not defined SKIP_DOCKER_PAUSE (
     pause
